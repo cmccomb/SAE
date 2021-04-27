@@ -3,8 +3,18 @@ name = "sae"
 version = "0.1.0"
 authors = ["Chris McComb <ccmcc2012@gmail.com>"]
 edition = "2018"
+description = "Common stop words in several languages"
+readme = "README.md"
+repository = "https://github.com/cmccomb/sae"
+homepage = "https://github.com/cmccomb/sae"
+documentation = "https://docs.rs/sae"
+license = "MIT OR Apache-2.0"
+keywords = ["sae", "engineering", "optimization"]
+categories = ["science", "simulation"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = []
+optimize = ["argmin"]
 
 [dependencies]
-argmin = "0.4.3"
+argmin = {version = "0.4.3", optional=true}
