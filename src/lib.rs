@@ -1,4 +1,4 @@
-const EVEN_WEIGHTS: Vec<f64> = vec![1.0 / 11.0; 11];
+const EVEN_WEIGHTS: [f64; 11] = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
 
 pub struct Car {}
 
@@ -7,7 +7,9 @@ impl Car {
         Car {}
     }
 
-    pub fn new_from_parameters(p: Vec<f64>) -> Self {}
+    pub fn new_from_parameters(p: Vec<f64>) -> Self {
+        Car {}
+    }
 
     pub fn objective(&self, weights: Vec<f64>) -> f64 {
         self.mass()
