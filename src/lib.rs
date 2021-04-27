@@ -1,9 +1,80 @@
+mod utils;
+
+const V_CAR: f64 = 26.8;
+const W_E: f64 = 3600 * 2 * pi / 60;
+const RHO_AIR: f64 = 1.225;
+const R_TRACK: f64 = 9.0;
+const P_BRK: f64 = 10 * *7;
+const C_DC: f64 = 0.04;
+const GRAVITY: f64 = 9.81;
+const Y_SUSPENSION: f64 = 0.05;
+const DYDT_SUSPENSION: f64 = 0.025;
+
+// Weights
 const EVEN_WEIGHTS: [f64; 11] = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
 
-pub struct Car {}
+pub struct Car {
+    rear_wing_height: f64,
+    rear_wing_length: f64,
+    rear_wing_angle_of_attack: f64,
+    front_wing_height: f64,
+    front_wing_length: f64,
+    front_wing_width: f64,
+    front_wing_angle_of_attack: f64,
+    side_wings_height: f64,
+    side_wings_length: f64,
+    side_wings_width: f64,
+    side_wings_angle_of_attack: f64,
+    rear_tire_pressure: f64,
+    front_tire_pressure: f64,
+    cabin_height: f64,
+    cabin_length: f64,
+    cabin_width: f64,
+    cabin_thickness: f64,
+    impact_attenuator_height: f64,
+    impact_attenuator_width: f64,
+    rear_wing_density: f64,
+    front_wing_density: f64,
+    side_wing_density: f64,
+    cabin_density: f64,
+    impact_attenuator_density: f64,
+    impact_attenuator_modulus: f64,
+    rear_tire_radius: f64,
+    rear_tire_mass: f64,
+    front_tire_radius: f64,
+    front_tire_mass: f64,
+    engine_power: f64,
+    engine_length: f64,
+    engine_height: f64,
+    engine_torque: f64,
+    engine_mass: f64,
+    brake_radius: f64,
+    brake_density: f64,
+    brake_length: f64,
+    brake_height: f64,
+    brake_width: f64,
+    brake_thickness: f64,
+    rear_suspension_spring_constant: f64,
+    rear_suspension_damping_coefficient: f64,
+    rear_suspension_mass: f64,
+    front_suspension_spring_constant: f64,
+    front_suspension_damping_coefficient: f64,
+    front_suspension_mass: f64,
+    rear_wing_width: f64,
+    rear_wing_y_position: f64,
+    front_wing_y_position: f64,
+    side_wing_y_position: f64,
+    engine_y_position: f64,
+    cabin_y_position: f64,
+    impact_attenuator_length: f64,
+    impact_attenuator_y_position: f64,
+    rear_suspension_y_position: f64,
+    front_suspension_y_position: f64,
+}
 
 impl Car {
     pub fn new() -> Self {
+        let x = utils::random_unit_draw();
         Car {}
     }
 
@@ -41,12 +112,22 @@ impl Car {
         todo!()
     }
 
-    pub fn mass(&self) -> f64 {
-        todo!()
-    }
-
     pub fn center_of_gravity(&self) -> f64 {
-        todo!()
+        t1 = (self.mrw() * self.yrw
+            + self.mfw() * self.yfw
+            + self.me * self.ye
+            + self.mc() * self.yc
+            + self.mia() * self.yia)
+            / self.mass();
+        t2 = 2
+            * (self.msw() * self.ysw
+                + self.mrt * self.rrt
+                + self.mft * self.rft
+                + self.mbrk() * self.rft
+                + self.mrsp * self.yrsp
+                + self.mfsp * self.yfsp)
+            / self.mass();
+        return t1 + t2;
     }
 
     pub fn drag_force(&self) -> f64 {
@@ -77,6 +158,44 @@ impl Car {
     }
     pub fn pitch_moment(&self) -> f64 {
         todo!()
+    }
+
+    pub fn mass(&self) -> f64 {
+        self.mass_rw()
+            + self.mass_fw()
+            + 2 * self.mass_sw()
+            + 2 * self.mrt
+            + 2 * self.mft
+            + self.me
+            + self.mass_c()
+            + self.mass_ia()
+            + 4 * self.mass_brk()
+            + 2 * self.mrsp
+            + 2 * self.mfsp
+    }
+
+    fn mass_rw(&self) -> f64 {
+        self.lrw * self.wrw * self.hrw * self.qrw
+    }
+
+    fn mass_fw(&self) -> f64 {
+        self.lfw * self.wfw * self.hfw * self.qfw
+    }
+
+    fn mass_sw(&self) -> f64 {
+        self.lsw * self.wsw * self.hsw * self.qsw
+    }
+    fn mass_ia(&self) -> f64 {
+        self.lia * self.wia * self.hia * self.qia
+    }
+    fn mass_c(&self) -> f64 {
+        2 * (self.hc * self.lc * self.tc
+            + self.hc * self.wc * self.tc
+            + self.lc * self.hc * self.tc)
+            * self.qc
+    }
+    fn mass_brk(&self) -> f64 {
+        self.lbrk * self.wbrk * self.hbrk * self.qbrk
     }
 }
 
