@@ -2,3 +2,4 @@
 [![Crates.io](https://img.shields.io/crates/v/sae.svg)](https://crates.io/crates/sae)
 [![docs.rs](https://docs.rs/sae/badge.svg)](https://docs.rs/sae)
 # About
+A test optimization problem for maximizing the performance of an SAE Formula Car
