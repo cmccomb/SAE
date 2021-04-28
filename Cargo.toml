@@ -3,7 +3,7 @@ name = "sae"
 version = "0.1.0"
 authors = ["Chris McComb <ccmcc2012@gmail.com>"]
 edition = "2018"
-description = "Common stop words in several languages"
+description = "A test optimization problem for SAE Formula Cars"
 readme = "README.md"
 repository = "https://github.com/cmccomb/sae"
 homepage = "https://github.com/cmccomb/sae"
@@ -12,11 +12,7 @@ license = "MIT OR Apache-2.0"
 keywords = ["sae", "engineering", "optimization"]
 categories = ["science", "simulation"]
 
-[features]
-default = []
-optimize = ["argmin"]
-
 [dependencies]
-argmin = {version = "0.4.3", optional=true}
+argmin = "0.4.3"
 rand = "0.8.3"
 rand_distr = "0.4.0"
