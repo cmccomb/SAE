@@ -19,6 +19,16 @@ const WEIGHTS3: [i32; 11] = [14, 1, 20, 15, 25, 1, 1, 10, 10, 2, 1]; // TODO: Ma
 
 #[derive(Default)]
 pub struct Car {
+    rear_wing_material_index: usize,
+    front_wing_material_index: usize,
+    side_wing_material_index: usize,
+    cabin_material_index: usize,
+    impact_attenuator_material_index: usize,
+    rear_tire_index: usize,
+    front_tire_index: usize,
+    brake_index: usize,
+    motor_index: usize,
+    suspension_index: usize,
     rear_wing_height: f64,
     rear_wing_length: f64,
     rear_wing_angle_of_attack: f64,
@@ -117,6 +127,17 @@ impl Car {
             utils::random_uniform(constants::CONST_BOUNDS[7][0], constants::CONST_BOUNDS[7][1]);
 
         Car {
+            // Index variables
+            rear_wing_material_index,
+            front_wing_material_index,
+            side_wing_material_index,
+            cabin_material_index,
+            impact_attenuator_material_index,
+            rear_tire_index,
+            front_tire_index,
+            brake_index,
+            motor_index,
+            suspension_index,
             // Parameters with uniform bounds
             rear_wing_height,
             rear_wing_length: utils::random_uniform(
@@ -249,6 +270,50 @@ impl Car {
         }
     }
 
+    pub fn get_parameter_vector(&self) -> Vec<f64> {
+        vec![
+            self.rear_wing_length,
+            self.rear_wing_height,
+            self.rear_wing_angle_of_attack,
+            self.front_wing_height,
+            self.front_wing_length,
+            self.front_wing_width,
+            self.front_wing_angle_of_attack,
+            self.side_wings_height,
+            self.side_wings_length,
+            self.side_wings_width,
+            self.side_wings_angle_of_attack,
+            self.rear_tire_pressure,
+            self.front_tire_pressure,
+            self.cabin_height,
+            self.cabin_length,
+            self.cabin_width,
+            self.cabin_thickness,
+            self.impact_attenuator_height,
+            self.impact_attenuator_width,
+            self.rear_wing_material_index as f64,
+            self.front_wing_material_index as f64,
+            self.side_wing_material_index as f64,
+            self.cabin_material_index as f64,
+            self.impact_attenuator_material_index as f64,
+            self.rear_tire_index as f64,
+            self.front_tire_index as f64,
+            self.brake_index as f64,
+            self.motor_index as f64,
+            self.suspension_index as f64,
+            self.rear_wing_width,
+            self.rear_wing_y_position,
+            self.front_wing_y_position,
+            self.side_wing_y_position,
+            self.engine_y_position,
+            self.cabin_y_position,
+            self.impact_attenuator_length,
+            self.impact_attenuator_y_position,
+            self.rear_suspension_y_position,
+            self.front_suspension_y_position,
+        ]
+    }
+
     pub fn new_from_parameters(p: &Vec<f64>) -> Self {
         // Get libraries
         let tires = constants::get_tires();
@@ -270,6 +335,16 @@ impl Car {
         let suspension_index = p[28] as usize;
 
         Car {
+            rear_wing_material_index,
+            front_wing_material_index,
+            side_wing_material_index,
+            cabin_material_index,
+            impact_attenuator_material_index,
+            rear_tire_index,
+            front_tire_index,
+            brake_index,
+            motor_index,
+            suspension_index,
             rear_wing_height: p[0],
             rear_wing_length: p[1],
             rear_wing_angle_of_attack: p[2],
@@ -334,8 +409,8 @@ impl Car {
     pub fn objective(&self, weights: [f64; 11]) -> f64 {
         weights[0] * self.mass()
             + weights[1] * self.center_of_gravity()
-            + weights[2] * self.drag_force()
-            + weights[3] * self.downward_force()
+            + weights[2] * self.total_drag_force()
+            + weights[3] * self.total_downward_force()
             + weights[4] * self.acceleration()
             + weights[5] * self.crash_force()
             + weights[6] * self.impact_attenuator_volume()
@@ -349,8 +424,8 @@ impl Car {
         [
             self.mass(),
             self.center_of_gravity(),
-            self.drag_force(),
-            self.downward_force(),
+            self.total_drag_force(),
+            self.total_downward_force(),
             self.acceleration(),
             self.crash_force(),
             self.impact_attenuator_volume(),
@@ -390,36 +465,6 @@ impl Car {
                 + self.front_suspension_mass * self.front_suspension_y_position)
             / total_mass;
         return t1 + t2;
-    }
-
-    pub fn drag_force(&self) -> f64 {
-        todo!()
-    }
-
-    pub fn downward_force(&self) -> f64 {
-        todo!()
-    }
-
-    pub fn acceleration(&self) -> f64 {
-        todo!()
-    }
-    pub fn crash_force(&self) -> f64 {
-        todo!()
-    }
-    pub fn impact_attenuator_volume(&self) -> f64 {
-        todo!()
-    }
-    pub fn corner_velocity(&self) -> f64 {
-        todo!()
-    }
-    pub fn brakeing_distance(&self) -> f64 {
-        todo!()
-    }
-    pub fn suspension_acceleration(&self) -> f64 {
-        todo!()
-    }
-    pub fn pitch_moment(&self) -> f64 {
-        todo!()
     }
 
     pub fn mass(&self) -> f64 {
@@ -471,6 +516,226 @@ impl Car {
     fn mass_brake(&self) -> f64 {
         self.brake_length * self.brake_width * self.brake_height * self.brake_density
     }
+
+    // aspect ratio of wing
+    fn aspect_ratio(w: f64, alpha: f64, l: f64) -> f64 {
+        w * alpha.cos() / l
+    }
+
+    // lift co-effecient
+    fn lift_coefficient(aspect_ratio: f64, alpha: f64) -> f64 {
+        2.0 * std::f64::consts::PI * (aspect_ratio / (aspect_ratio + 2.0)) * alpha
+    }
+
+    // drag co-efficient
+    fn drag_coefficient(lift_coefficient: f64, aspect_ratio: f64) -> f64 {
+        return lift_coefficient.powi(2) / (std::f64::consts::PI * aspect_ratio);
+    }
+
+    // wing downforce
+    fn wing_down_force(&self, w: f64, h: f64, l: f64, alpha: f64) -> f64 {
+        let wing_aspect_ratio = Car::aspect_ratio(w, alpha, l);
+        let c_lift = Car::lift_coefficient(wing_aspect_ratio, alpha);
+        0.5 * alpha * h * w * RHO_AIR * (V_CAR.powi(2)) * c_lift
+    }
+
+    // wing drag
+    fn wing_drag_force(&self, w: f64, h: f64, l: f64, alpha: f64) -> f64 {
+        let wing_aspect_ratio = Car::aspect_ratio(w, alpha, l);
+        let c_lift = Car::lift_coefficient(wing_aspect_ratio, alpha);
+        let c_drag = Car::drag_coefficient(c_lift, wing_aspect_ratio);
+        Car::drag_force(w, h, c_drag)
+    }
+
+    // drag
+    fn drag_force(w: f64, h: f64, c_drag: f64) -> f64 {
+        return 0.5 * w * h * RHO_AIR * V_CAR.powi(2) * c_drag;
+    }
+    // # objective 3 - total drag (minimize)
+    fn total_drag_force(&self) -> f64 {
+        let cabinDrag = Car::drag_force(self.cabin_width, self.cabin_height, C_DC);
+        let rearWingDrag = self.wing_drag_force(
+            self.rear_wing_width,
+            self.rear_wing_height,
+            self.rear_wing_length,
+            self.rear_wing_angle_of_attack,
+        );
+        let frontWingDrag = self.wing_drag_force(
+            self.front_wing_width,
+            self.front_wing_height,
+            self.front_wing_length,
+            self.front_wing_angle_of_attack,
+        );
+        let sideWingDrag = self.wing_drag_force(
+            self.side_wings_width,
+            self.side_wings_height,
+            self.side_wings_length,
+            self.side_wings_angle_of_attack,
+        );
+        rearWingDrag + frontWingDrag + 2.0 * sideWingDrag + cabinDrag
+    }
+
+    // # objective 4 - total downforce (maximize)
+    fn total_downward_force(&self) -> f64 {
+        let downForceRearWing = self.wing_down_force(
+            self.rear_wing_width,
+            self.rear_wing_height,
+            self.rear_wing_length,
+            self.rear_wing_angle_of_attack,
+        );
+        let downForceFrontWing = self.wing_down_force(
+            self.front_wing_width,
+            self.front_wing_height,
+            self.front_wing_length,
+            self.front_wing_angle_of_attack,
+        );
+        let downForceSideWing = self.wing_down_force(
+            self.side_wings_width,
+            self.side_wings_height,
+            self.side_wings_length,
+            self.side_wings_angle_of_attack,
+        );
+        downForceRearWing + downForceFrontWing + 2.0 * downForceSideWing
+    }
+
+    // rolling resistance
+    fn rolling_resistance(&self, tire_pressure: f64) -> f64 {
+        let c = 0.005 + 1.0 / tire_pressure * (0.01 + 0.0095 * ((V_CAR * 3.6 / 100.0).powi(2)));
+        return c * self.mass() * GRAVITY;
+    }
+    // # objective 5 - acceleration (maximize)
+    fn acceleration(&self) -> f64 {
+        let total_resistance =
+            self.total_drag_force() + self.rolling_resistance(self.rear_tire_pressure);
+
+        let w_wheels = V_CAR / self.rear_tire_radius;
+        let efficiency = total_resistance * V_CAR / self.engine_power;
+        let torque = self.engine_torque;
+
+        let f_wheels = torque * efficiency * W_E / (self.rear_tire_radius * w_wheels);
+
+        (f_wheels - total_resistance) / self.mass()
+    }
+
+    // # objective 6 - crash force (minimize)
+    fn crash_force(&self) -> f64 {
+        (self.mass()
+            * V_CAR.powi(2)
+            * self.impact_attenuator_width
+            * self.impact_attenuator_height
+            * self.impact_attenuator_modulus
+            / (2.0 * self.impact_attenuator_length))
+            .sqrt()
+    }
+
+    // # objective 7 - impact attenuator volume (minimize)
+    fn impact_attenuator_volume(&self) -> f64 {
+        self.impact_attenuator_length * self.impact_attenuator_height * self.impact_attenuator_width
+    }
+
+    fn suspension_force(k: f64, c: f64) -> f64 {
+        k * Y_SUSPENSION + c * DYDT_SUSPENSION
+    }
+    // # objective 8 - corner velocity in skid pad (maximize)
+    fn corner_velocity(&self) -> f64 {
+        let F_fsp = Car::suspension_force(
+            self.front_suspension_spring_constant,
+            self.front_suspension_damping_coefficient,
+        );
+        let F_rsp = Car::suspension_force(
+            self.rear_suspension_spring_constant,
+            self.rear_suspension_damping_coefficient,
+        );
+        let downforce = self.total_downward_force();
+        let mTotal = self.mass();
+
+        let Clat = 1.6;
+        let forces = downforce + mTotal * GRAVITY - 2.0 * F_fsp - 2.0 * F_rsp;
+
+        return if forces < 0.0 {
+            0.0
+        } else {
+            (forces * Clat * R_TRACK / mTotal).sqrt()
+        };
+    }
+    // # objective 9 - (minimize)
+    fn brakeing_distance(&self) -> f64 {
+        let mTotal = self.mass();
+        let C = 0.005
+            + 1.0 / self.rear_tire_pressure * (0.01 + 0.0095 * ((V_CAR * 3.6 / 100.0).powi(2)));
+
+        let A_brk = self.brake_height * self.brake_width;
+        let c_brk = 0.37;
+        let Tbrk = 2.0 * c_brk * P_BRAKE * A_brk * self.brake_radius;
+
+        let Ffsp = Car::suspension_force(
+            self.front_suspension_spring_constant,
+            self.front_suspension_damping_coefficient,
+        );
+        let Frsp = Car::suspension_force(
+            self.rear_suspension_spring_constant,
+            self.rear_suspension_damping_coefficient,
+        );
+        let mut Fy = mTotal * GRAVITY + self.total_downward_force() - 2.0 * Frsp - 2.0 * Ffsp;
+        if Fy <= 0.0 {
+            Fy = 1e-10;
+        }
+        let a_brk = Fy * C / mTotal + 4.0 * Tbrk / (self.rear_tire_radius * mTotal);
+        return V_CAR.powi(2) / (2.0 * a_brk);
+    }
+
+    // # objective 10 - (minimize)
+    fn suspension_acceleration(&self) -> f64 {
+        let Ffsp = Car::suspension_force(
+            self.front_suspension_spring_constant,
+            self.front_suspension_damping_coefficient,
+        );
+        let Frsp = Car::suspension_force(
+            self.rear_suspension_spring_constant,
+            self.rear_suspension_damping_coefficient,
+        );
+        let mTotal = self.mass();
+        let Fd = self.total_downward_force();
+        return -(2.0 * Ffsp - 2.0 * Frsp - mTotal * GRAVITY - Fd) / mTotal;
+    }
+
+    // # objective 11 - (minimize)
+    fn pitch_moment(&self) -> f64 {
+        let Ffsp = Car::suspension_force(
+            self.front_suspension_spring_constant,
+            self.front_suspension_damping_coefficient,
+        );
+        let Frsp = Car::suspension_force(
+            self.rear_suspension_spring_constant,
+            self.rear_suspension_damping_coefficient,
+        );
+        let downForceRearWing = self.wing_down_force(
+            self.rear_wing_width,
+            self.rear_wing_height,
+            self.rear_wing_length,
+            self.rear_wing_angle_of_attack,
+        );
+        let downForceFrontWing = self.wing_down_force(
+            self.front_wing_width,
+            self.front_wing_height,
+            self.front_wing_length,
+            self.front_wing_angle_of_attack,
+        );
+        let downForceSideWing = self.wing_down_force(
+            self.side_wings_width,
+            self.side_wings_height,
+            self.side_wings_length,
+            self.side_wings_angle_of_attack,
+        );
+        let lcg = self.cabin_length;
+        let lf = 0.5;
+        return (2.0 * Ffsp * lf
+            + 2.0 * Frsp * lf
+            + downForceRearWing * (lcg - self.rear_wing_length)
+            - downForceFrontWing * (lcg - self.front_wing_length)
+            - 2.0 * downForceSideWing * (lcg - self.side_wings_length))
+            .abs();
+    }
 }
 
 impl argmin::prelude::ArgminOp for Car {
@@ -499,7 +764,7 @@ mod tests {
     fn internal() {
         let cost = Car::new();
         println!("{:?}", cost.objective(EVEN_WEIGHTS));
-        // let init_param: Vec<f64> = vec![0.0; 39];
+        let init_param: Vec<f64> = vec![0.0; 39];
         // let line_search = argmin::solver::linesearch::MoreThuenteLineSearch::new();
         // let solver = argmin::solver::gradientdescent::SteepestDescent::new(line_search);
         // let res = argmin::prelude::Executor::new(cost, solver, init_param)
