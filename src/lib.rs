@@ -1,13 +1,25 @@
 mod constants;
 mod utils;
 
+use uom::si::{
+    acceleration::meter_per_second_squared,
+    angle::radian,
+    f64::{Acceleration, Angle, Length, Mass, MassDensity, Power, Pressure, Ratio, Torque},
+    length::meter,
+    mass::kilogram,
+    mass_density::kilogram_per_cubic_meter,
+    pressure::pascal,
+    ratio::ratio,
+};
+use uom::typenum::Len;
+
 const V_CAR: f64 = 26.8;
 const W_E: f64 = 3600.0 * 2.0 * std::f64::consts::PI / 60.0;
-const RHO_AIR: f64 = 1.225;
-const R_TRACK: f64 = 9.0;
+const RHO_AIR: MassDensity = MassDensity::new::<kilogram_per_cubic_meter>(1.225);
+const R_TRACK: f64 = Length::new::<meters>(9.0);
 const P_BRAKE: f64 = 10_000_000.0;
-const C_DC: f64 = 0.04;
-const GRAVITY: f64 = 9.81;
+const C_DC: Ratio = Ratio::new::<ratio>(0.04);
+const GRAVITY: Acceleration = Acceleration::new::<meter_per_second_squared>(9.81);
 const Y_SUSPENSION: f64 = 0.05;
 const DYDT_SUSPENSION: f64 = 0.025;
 
@@ -29,62 +41,62 @@ pub struct Car {
     brake_index: usize,
     motor_index: usize,
     suspension_index: usize,
-    rear_wing_height: f64,
-    rear_wing_length: f64,
-    rear_wing_angle_of_attack: f64,
-    front_wing_height: f64,
-    front_wing_length: f64,
-    front_wing_width: f64,
-    front_wing_angle_of_attack: f64,
-    side_wings_height: f64,
-    side_wings_length: f64,
-    side_wings_width: f64,
-    side_wings_angle_of_attack: f64,
-    rear_tire_pressure: f64,
-    front_tire_pressure: f64,
-    cabin_height: f64,
-    cabin_length: f64,
-    cabin_width: f64,
-    cabin_thickness: f64,
-    impact_attenuator_height: f64,
-    impact_attenuator_width: f64,
-    rear_wing_density: f64,
-    front_wing_density: f64,
-    side_wing_density: f64,
-    cabin_density: f64,
-    impact_attenuator_density: f64,
-    impact_attenuator_modulus: f64,
-    rear_tire_radius: f64,
-    rear_tire_mass: f64,
-    front_tire_radius: f64,
-    front_tire_mass: f64,
-    engine_power: f64,
-    engine_length: f64,
-    engine_height: f64,
-    engine_torque: f64,
-    engine_mass: f64,
-    brake_radius: f64,
-    brake_density: f64,
-    brake_length: f64,
-    brake_height: f64,
-    brake_width: f64,
-    brake_thickness: f64,
+    rear_wing_height: Length,
+    rear_wing_length: Length,
+    rear_wing_angle_of_attack: Angle,
+    front_wing_height: Length,
+    front_wing_length: Length,
+    front_wing_width: Length,
+    front_wing_angle_of_attack: Angle,
+    side_wings_height: Length,
+    side_wings_length: Length,
+    side_wings_width: Length,
+    side_wings_angle_of_attack: Angle,
+    rear_tire_pressure: Pressure,
+    front_tire_pressure: Pressure,
+    cabin_height: Length,
+    cabin_length: Length,
+    cabin_width: Length,
+    cabin_thickness: Length,
+    impact_attenuator_height: Length,
+    impact_attenuator_width: Length,
+    rear_wing_density: MassDensity,
+    front_wing_density: MassDensity,
+    side_wing_density: MassDensity,
+    cabin_density: MassDensity,
+    impact_attenuator_density: MassDensity,
+    impact_attenuator_modulus: Pressure,
+    rear_tire_radius: Length,
+    rear_tire_mass: Mass,
+    front_tire_radius: Length,
+    front_tire_mass: Mass,
+    engine_power: Power,
+    engine_length: Length,
+    engine_height: Length,
+    engine_torque: Torque,
+    engine_mass: Mass,
+    brake_radius: Length,
+    brake_density: MassDensity,
+    brake_length: Length,
+    brake_height: Length,
+    brake_width: Length,
+    brake_thickness: Length,
     rear_suspension_spring_constant: f64,
     rear_suspension_damping_coefficient: f64,
-    rear_suspension_mass: f64,
+    rear_suspension_mass: Mass,
     front_suspension_spring_constant: f64,
     front_suspension_damping_coefficient: f64,
-    front_suspension_mass: f64,
-    rear_wing_width: f64,
-    rear_wing_y_position: f64,
-    front_wing_y_position: f64,
-    side_wing_y_position: f64,
-    engine_y_position: f64,
-    cabin_y_position: f64,
-    impact_attenuator_length: f64,
-    impact_attenuator_y_position: f64,
-    rear_suspension_y_position: f64,
-    front_suspension_y_position: f64,
+    front_suspension_mass: Mass,
+    rear_wing_width: Length,
+    rear_wing_y_position: Length,
+    front_wing_y_position: Length,
+    side_wing_y_position: Length,
+    engine_y_position: Length,
+    cabin_y_position: Length,
+    impact_attenuator_length: Length,
+    impact_attenuator_y_position: Length,
+    rear_suspension_y_position: Length,
+    front_suspension_y_position: Length,
 }
 
 impl Car {
@@ -109,22 +121,30 @@ impl Car {
         let impact_attenuator_material_index = utils::multinomial_draw(vec![1.0; materials.len()]);
 
         // Variables used in multiple places
-        let impact_attenuator_height = utils::random_uniform(
+        let impact_attenuator_height = Length::new::<meter>(utils::random_uniform(
             constants::CONST_BOUNDS[17][0],
             constants::CONST_BOUNDS[17][1],
-        );
-        let front_wing_length =
-            utils::random_uniform(constants::CONST_BOUNDS[4][0], constants::CONST_BOUNDS[4][1]);
-        let cabin_height = utils::random_uniform(
+        ));
+        let front_wing_length = Length::new::<meter>(utils::random_uniform(
+            constants::CONST_BOUNDS[4][0],
+            constants::CONST_BOUNDS[4][1],
+        ));
+        let cabin_height = Length::new::<meter>(utils::random_uniform(
             constants::CONST_BOUNDS[13][0],
             constants::CONST_BOUNDS[13][1],
-        );
-        let rear_wing_height =
-            utils::random_uniform(constants::CONST_BOUNDS[0][0], constants::CONST_BOUNDS[0][1]);
-        let front_wing_height =
-            utils::random_uniform(constants::CONST_BOUNDS[3][0], constants::CONST_BOUNDS[3][1]);
-        let side_wings_height =
-            utils::random_uniform(constants::CONST_BOUNDS[7][0], constants::CONST_BOUNDS[7][1]);
+        ));
+        let rear_wing_height = Length::new::<meter>(utils::random_uniform(
+            constants::CONST_BOUNDS[0][0],
+            constants::CONST_BOUNDS[0][1],
+        ));
+        let front_wing_height = Length::new::<meter>(utils::random_uniform(
+            constants::CONST_BOUNDS[3][0],
+            constants::CONST_BOUNDS[3][1],
+        ));
+        let side_wings_height = Length::new::<meter>(utils::random_uniform(
+            constants::CONST_BOUNDS[7][0],
+            constants::CONST_BOUNDS[7][1],
+        ));
 
         Car {
             // Index variables
@@ -140,157 +160,172 @@ impl Car {
             suspension_index,
             // Parameters with uniform bounds
             rear_wing_height,
-            rear_wing_length: utils::random_uniform(
+            rear_wing_length: Length::new::<meter>(utils::random_uniform(
                 constants::CONST_BOUNDS[1][0],
                 constants::CONST_BOUNDS[1][1],
-            ),
-            rear_wing_angle_of_attack: utils::random_uniform(
+            )),
+            rear_wing_angle_of_attack: Angle::new::<radian>(utils::random_uniform(
                 constants::CONST_BOUNDS[2][0],
                 constants::CONST_BOUNDS[2][1],
-            ),
+            )),
             front_wing_height,
             front_wing_length,
-            front_wing_width: utils::random_uniform(
+            front_wing_width: Length::new::<meter>(utils::random_uniform(
                 constants::CONST_BOUNDS[5][0],
                 constants::CONST_BOUNDS[5][1],
-            ),
-            front_wing_angle_of_attack: utils::random_uniform(
+            )),
+            front_wing_angle_of_attack: Angle::new::<radian>(utils::random_uniform(
                 constants::CONST_BOUNDS[6][0],
                 constants::CONST_BOUNDS[6][1],
-            ),
+            )),
             side_wings_height,
-            side_wings_length: utils::random_uniform(
+            side_wings_length: Length::new::<meter>(utils::random_uniform(
                 constants::CONST_BOUNDS[8][0],
                 constants::CONST_BOUNDS[8][1],
-            ),
-            side_wings_width: utils::random_uniform(
+            )),
+            side_wings_width: Length::new::<meter>(utils::random_uniform(
                 constants::CONST_BOUNDS[9][0],
                 constants::CONST_BOUNDS[9][1],
-            ),
-            side_wings_angle_of_attack: utils::random_uniform(
+            )),
+            side_wings_angle_of_attack: Angle::new::<radian>(utils::random_uniform(
                 constants::CONST_BOUNDS[10][0],
                 constants::CONST_BOUNDS[10][1],
-            ),
-            rear_tire_pressure: utils::random_uniform(
+            )),
+            rear_tire_pressure: Pressure::new::<pascal>(utils::random_uniform(
                 constants::CONST_BOUNDS[11][0],
                 constants::CONST_BOUNDS[11][1],
-            ),
-            front_tire_pressure: utils::random_uniform(
+            )),
+            front_tire_pressure: Pressure::new::<pascal>(utils::random_uniform(
                 constants::CONST_BOUNDS[12][0],
                 constants::CONST_BOUNDS[12][1],
-            ),
+            )),
             cabin_height,
-            cabin_length: utils::random_uniform(
+            cabin_length: Length::new::<meter>(utils::random_uniform(
                 constants::CONST_BOUNDS[14][0],
                 constants::CONST_BOUNDS[14][1],
-            ),
-            cabin_width: utils::random_uniform(
+            )),
+            cabin_width: Length::new::<meter>(utils::random_uniform(
                 constants::CONST_BOUNDS[15][0],
                 constants::CONST_BOUNDS[15][1],
-            ),
-            cabin_thickness: utils::random_uniform(
+            )),
+            cabin_thickness: Length::new::<meter>(utils::random_uniform(
                 constants::CONST_BOUNDS[16][0],
                 constants::CONST_BOUNDS[16][1],
-            ),
+            )),
             impact_attenuator_height,
-            impact_attenuator_width: utils::random_uniform(
+            impact_attenuator_width: Length::new::<meter>(utils::random_uniform(
                 constants::CONST_BOUNDS[18][0],
                 constants::CONST_BOUNDS[18][1],
-            ),
+            )),
 
             // Parameters based on lookup from indices
-            rear_wing_density: materials[&rear_wing_material_index]["density"],
-            front_wing_density: materials[&front_wing_material_index]["density"],
-            side_wing_density: materials[&side_wing_material_index]["density"],
-            cabin_density: materials[&cabin_material_index]["density"],
-            impact_attenuator_density: materials[&impact_attenuator_material_index]["density"],
+            rear_wing_density: MassDensity::new::<kilogram_per_cubic_meter>(
+                materials[&rear_wing_material_index]["density"],
+            ),
+            front_wing_density: MassDensity::new::<kilogram_per_cubic_meter>(
+                materials[&front_wing_material_index]["density"],
+            ),
+            side_wing_density: MassDensity::new::<kilogram_per_cubic_meter>(
+                materials[&side_wing_material_index]["density"],
+            ),
+            cabin_density: MassDensity::new::<kilogram_per_cubic_meter>(
+                materials[&cabin_material_index]["density"],
+            ),
+            impact_attenuator_density: MassDensity::new::<kilogram_per_cubic_meter>(
+                materials[&impact_attenuator_material_index]["density"],
+            ),
             impact_attenuator_modulus: materials[&impact_attenuator_material_index]["modulus"],
-            rear_tire_radius: tires[&rear_tire_index]["radius"],
-            rear_tire_mass: tires[&rear_tire_index]["mass"],
-            front_tire_radius: tires[&front_tire_index]["radius"],
-            front_tire_mass: tires[&front_tire_index]["mass"],
+            rear_tire_radius: Length::new::<meter>(tires[&rear_tire_index]["radius"]),
+            rear_tire_mass: Mass::new::<kilogram>(tires[&rear_tire_index]["mass"]),
+            front_tire_radius: Length::new::<meter>(tires[&front_tire_index]["radius"]),
+            front_tire_mass: Mass::new::<kilogram>(tires[&front_tire_index]["mass"]),
             engine_power: motors[&motor_index]["power"],
-            engine_length: motors[&motor_index]["length"],
-            engine_height: motors[&motor_index]["height"],
+            engine_length: Length::new::<meter>(motors[&motor_index]["length"]),
+            engine_height: Length::new::<meter>(motors[&motor_index]["height"]),
             engine_torque: motors[&motor_index]["torque"],
-            engine_mass: motors[&motor_index]["mass"],
-            brake_radius: brakes[&brake_index]["radius"],
-            brake_density: brakes[&brake_index]["density"],
-            brake_length: brakes[&brake_index]["length"],
-            brake_height: brakes[&brake_index]["height"],
-            brake_width: brakes[&brake_index]["width"],
-            brake_thickness: brakes[&brake_index]["thickness"],
+            engine_mass: Mass::new::<kilogram>(motors[&motor_index]["mass"]),
+            brake_radius: Length::new::<meter>(brakes[&brake_index]["radius"]),
+            brake_density: MassDensity::new::<kilogram_per_cubic_meter>(
+                brakes[&brake_index]["density"],
+            ),
+            brake_length: Length::new::<meter>(brakes[&brake_index]["length"]),
+            brake_height: Length::new::<meter>(brakes[&brake_index]["height"]),
+            brake_width: Length::new::<meter>(brakes[&brake_index]["width"]),
+            brake_thickness: Length::new::<meter>(brakes[&brake_index]["thickness"]),
             rear_suspension_spring_constant: suspensions[&suspension_index]["spring_constant"],
             rear_suspension_damping_coefficient: suspensions[&suspension_index]
                 ["damping_coefficient"],
-            rear_suspension_mass: suspensions[&suspension_index]["mass"],
+            rear_suspension_mass: Mass::new::<kilogram>(suspensions[&suspension_index]["mass"]),
             front_suspension_spring_constant: suspensions[&suspension_index]["spring_constant"],
             front_suspension_damping_coefficient: suspensions[&suspension_index]
                 ["damping_coefficient"],
-            front_suspension_mass: suspensions[&suspension_index]["mass"],
+            front_suspension_mass: Mass::new::<kilogram>(suspensions[&suspension_index]["mass"]),
 
             // Parameters with variables bounds
-            rear_wing_width: utils::random_uniform(
+            rear_wing_width: Length::new::<meter>(utils::random_uniform(
                 0.3,
                 9.0 - 2.0 * tires[&rear_tire_index]["radius"],
-            ),
-            rear_wing_y_position: utils::random_uniform(
+            )),
+            rear_wing_y_position: Length::new::<meter>(utils::random_uniform(
                 0.5 + rear_wing_height / 2.0,
                 1.2 - rear_wing_height / 2.0,
-            ),
-            front_wing_y_position: utils::random_uniform(
+            )),
+            front_wing_y_position: Length::new::<meter>(utils::random_uniform(
                 0.03 + front_wing_height,
                 0.25 - rear_wing_height / 2.0,
-            ),
-            side_wing_y_position: utils::random_uniform(
+            )),
+            side_wing_y_position: Length::new::<meter>(utils::random_uniform(
                 0.03 + side_wings_height / 2.0,
                 0.25 - side_wings_height / 2.0,
-            ),
-            engine_y_position: utils::random_uniform(
+            )),
+            engine_y_position: Length::new::<meter>(utils::random_uniform(
                 0.03 + motors[&motor_index]["height"] / 2.0,
                 0.5 - motors[&motor_index]["height"] / 2.0,
-            ),
-            cabin_y_position: utils::random_uniform(
+            )),
+            cabin_y_position: Length::new::<meter>(utils::random_uniform(
                 0.03 + cabin_height / 2.0,
                 1.2 - cabin_height / 2.0,
-            ),
-            impact_attenuator_length: utils::random_uniform(0.2, 0.7 - front_wing_length),
-            impact_attenuator_y_position: utils::random_uniform(
+            )),
+            impact_attenuator_length: Length::new::<meter>(utils::random_uniform(
+                0.2,
+                0.7 - front_wing_length,
+            )),
+            impact_attenuator_y_position: Length::new::<meter>(utils::random_uniform(
                 0.03 + impact_attenuator_height / 2.0,
                 1.2 - impact_attenuator_height / 2.0,
-            ),
-            rear_suspension_y_position: utils::random_uniform(
+            )),
+            rear_suspension_y_position: Length::new::<meter>(utils::random_uniform(
                 tires[&rear_tire_index]["radius"],
                 2.0 * tires[&rear_tire_index]["radius"],
-            ),
-            front_suspension_y_position: utils::random_uniform(
+            )),
+            front_suspension_y_position: Length::new::<meter>(utils::random_uniform(
                 tires[&front_tire_index]["radius"],
                 2.0 * tires[&front_tire_index]["radius"],
-            ),
+            )),
         }
     }
 
     pub fn get_parameter_vector(&self) -> Vec<f64> {
         vec![
-            self.rear_wing_length,
-            self.rear_wing_height,
-            self.rear_wing_angle_of_attack,
-            self.front_wing_height,
-            self.front_wing_length,
-            self.front_wing_width,
-            self.front_wing_angle_of_attack,
-            self.side_wings_height,
-            self.side_wings_length,
-            self.side_wings_width,
-            self.side_wings_angle_of_attack,
-            self.rear_tire_pressure,
-            self.front_tire_pressure,
-            self.cabin_height,
-            self.cabin_length,
-            self.cabin_width,
-            self.cabin_thickness,
-            self.impact_attenuator_height,
-            self.impact_attenuator_width,
+            self.rear_wing_length.value,
+            self.rear_wing_height.value,
+            self.rear_wing_angle_of_attack.value,
+            self.front_wing_height.value,
+            self.front_wing_length.value,
+            self.front_wing_width.value,
+            self.front_wing_angle_of_attack.value,
+            self.side_wings_height.value,
+            self.side_wings_length.value,
+            self.side_wings_width.value,
+            self.side_wings_angle_of_attack.value,
+            self.rear_tire_pressure.value,
+            self.front_tire_pressure.value,
+            self.cabin_height.value,
+            self.cabin_length.value,
+            self.cabin_width.value,
+            self.cabin_thickness.value,
+            self.impact_attenuator_height.value,
+            self.impact_attenuator_width.value,
             self.rear_wing_material_index as f64,
             self.front_wing_material_index as f64,
             self.side_wing_material_index as f64,
@@ -301,16 +336,16 @@ impl Car {
             self.brake_index as f64,
             self.motor_index as f64,
             self.suspension_index as f64,
-            self.rear_wing_width,
-            self.rear_wing_y_position,
-            self.front_wing_y_position,
-            self.side_wing_y_position,
-            self.engine_y_position,
-            self.cabin_y_position,
-            self.impact_attenuator_length,
-            self.impact_attenuator_y_position,
-            self.rear_suspension_y_position,
-            self.front_suspension_y_position,
+            self.rear_wing_width.value,
+            self.rear_wing_y_position.value,
+            self.front_wing_y_position.value,
+            self.side_wing_y_position.value,
+            self.engine_y_position.value,
+            self.cabin_y_position.value,
+            self.impact_attenuator_length.value,
+            self.impact_attenuator_y_position.value,
+            self.rear_suspension_y_position.value,
+            self.front_suspension_y_position.value,
         ]
     }
 
